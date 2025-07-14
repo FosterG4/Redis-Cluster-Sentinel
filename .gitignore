@@ -1,0 +1,41 @@
+# Redis data and logs
+redis-master-data/
+redis-slave-1-data/
+redis-slave-2-data/
+*.rdb
+*.aof
+*.log
+
+# Docker artifacts
+*.pid
+*.sock
+
+# Environment files
+.env
+
+# VS Code settings
+.vscode/
+
+# OS/Editor files
+.DS_Store
+Thumbs.db
+
+# Node modules (if present)
+node_modules/
+
+# Python cache (if present)
+__pycache__/
+*.pyc
+
+# Backup and temp files
+*.bak
+*.tmp
+*.swp
+*.swo
+
+# System files
+ehthumbs.db
+desktop.ini
+
+# Copilot/AI artifacts
+.github/copilot-instructions.md

@@ -1,0 +1,160 @@
+version: '3.8'
+
+# Production Redis Cluster with Sentinel
+# Optimized for 8GB RAM, 4 CPU cores
+
+services:
+  redis-master:
+    image: redis:6.2
+    container_name: redis-master
+    command: redis-server /usr/local/etc/redis/redis.conf --maxmemory ${REDIS_MAX_MEMORY_MASTER}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-master-data:/data
+      - ./redis-master.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 3G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    ulimits:
+      nofile:
+        soft: 131072
+        hard: 131072
+    restart: always
+    networks:
+      - redis-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  redis-slave-1:
+    image: redis:6.2
+    container_name: redis-slave-1
+    command: redis-server /usr/local/etc/redis/redis.conf --slaveof redis-master 6379 --maxmemory ${REDIS_MAX_MEMORY_SLAVE}
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-slave-1-data:/data
+      - ./redis-slave.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    restart: always
+    networks:
+      - redis-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  redis-slave-2:
+    image: redis:6.2
+    container_name: redis-slave-2
+    command: redis-server /usr/local/etc/redis/redis.conf --slaveof redis-master 6379 --maxmemory ${REDIS_MAX_MEMORY_SLAVE}
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-slave-2-data:/data
+      - ./redis-slave.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    restart: always
+    networks:
+      - redis-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  sentinel:
+    image: redis:6.2
+    container_name: redis-sentinel
+    command: redis-sentinel /etc/sentinel/sentinel.conf
+    ports:
+      - "26379:26379"
+    volumes:
+      - ./sentinel.conf:/etc/sentinel/sentinel.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - SENTINEL_QUORUM=${SENTINEL_QUORUM}
+      - SENTINEL_DOWN_AFTER=${SENTINEL_DOWN_AFTER}
+      - SENTINEL_FAILOVER_TIMEOUT=${SENTINEL_FAILOVER_TIMEOUT}
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      redis-slave-1:
+        condition: service_healthy
+      redis-slave-2:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 500M
+        reservations:
+          cpus: '0.2'
+          memory: 300M
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    restart: always
+    networks:
+      - redis-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  redis-master-data:
+    driver: local
+  redis-slave-1-data:
+    driver: local
+  redis-slave-2-data:
+    driver: local
+
+networks:
+  redis-net:
+    driver: bridge
