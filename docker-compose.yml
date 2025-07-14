@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Production Redis Cluster with Sentinel
 # Optimized for 8GB RAM, 4 CPU cores
 
